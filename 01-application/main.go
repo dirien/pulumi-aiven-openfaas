@@ -171,7 +171,7 @@ func main() {
 			},
 
 			Values: pulumi.Map{
-				"brokerHost": kafka.ServiceHost,
+				"brokerHost": kafka.ServiceUri,
 				"tls":        pulumi.Bool(true),
 				"saslAuth":   pulumi.Bool(false),
 				"caSecret":   kafkaBrokerCa.Metadata.Name(),
