@@ -6,9 +6,10 @@ import (
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"os"
 )
 
-const projectName = "kafka-test\n"
+const projectName = "kafka-test"
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
@@ -154,7 +155,7 @@ func main() {
 				Namespace: namespace.Metadata.Name(),
 			},
 			StringData: pulumi.StringMap{
-				"license": pulumi.String("xxx"),
+				"license": pulumi.String(os.Getenv("OPENFAAS_LICENSE")),
 			},
 		})
 		if err != nil {
