@@ -6,13 +6,13 @@ import (
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
+
+const projectName = "kafka-test\n"
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		c := config.New(ctx, "")
-		projectName := c.Require("project")
+
 		kafka, err := aiven.NewKafka(ctx, "kafka", &aiven.KafkaArgs{
 			Project:     pulumi.String(projectName),
 			CloudName:   pulumi.String("azure-westeurope"),
@@ -147,7 +147,6 @@ func main() {
 			return err
 		}
 
-		openfaas := c.Require("openfaas")
 		_, err = v1.NewSecret(ctx, "openfaas-license", &v1.SecretArgs{
 			Type: pulumi.String("generic"),
 			Metadata: &metav1.ObjectMetaArgs{
@@ -155,7 +154,7 @@ func main() {
 				Namespace: namespace.Metadata.Name(),
 			},
 			StringData: pulumi.StringMap{
-				"license": pulumi.String(openfaas),
+				"license": pulumi.String("xxx"),
 			},
 		})
 		if err != nil {
