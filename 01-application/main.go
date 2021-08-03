@@ -167,6 +167,7 @@ func main() {
 			Version:   pulumi.String("0.6.3"),
 			Namespace: pulumi.String("openfaas"),
 			FetchArgs: helm.FetchArgs{
+
 				Repo: pulumi.String("https://openfaas.github.io/faas-netes/"),
 			},
 
