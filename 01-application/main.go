@@ -92,7 +92,9 @@ func main() {
 			Chart:     pulumi.String("openfaas/openfaas"),
 			Version:   pulumi.String("8.0.2"),
 			Namespace: pulumi.String("openfaas"),
-			Repo:      pulumi.String("https://openfaas.github.io/faas-netes/"),
+			FetchArgs: helm.FetchArgs{
+				Repo: pulumi.String("https://openfaas.github.io/faas-netes/"),
+			},
 			Values: pulumi.Map{
 				"functionNamespace": pulumi.String("openfaas-fn"),
 				"generateBasicAuth": pulumi.Bool(true),
@@ -164,7 +166,9 @@ func main() {
 			Chart:     pulumi.String("openfaas/kafka-connector"),
 			Version:   pulumi.String("0.6.3"),
 			Namespace: pulumi.String("openfaas"),
-			Repo:      pulumi.String("https://openfaas.github.io/faas-netes/"),
+			FetchArgs: helm.FetchArgs{
+				Repo: pulumi.String("https://openfaas.github.io/faas-netes/"),
+			},
 
 			Values: pulumi.Map{
 				"brokerHost": kafka.ServiceUri,
