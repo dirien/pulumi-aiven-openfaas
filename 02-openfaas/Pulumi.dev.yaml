@@ -1,0 +1,3 @@
+config:
+  02-openfaas:openfaas:
+    secure: <license>

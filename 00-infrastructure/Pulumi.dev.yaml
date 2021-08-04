@@ -1,0 +1,3 @@
+config:
+  linode:token:
+    secure: <token>
