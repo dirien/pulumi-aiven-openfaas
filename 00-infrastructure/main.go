@@ -58,7 +58,7 @@ func main() {
 		// Create the API token as a Kubernetes Secret.
 		accessToken, err := corev1.NewSecret(ctx, "accesstoken", &corev1.SecretArgs{
 			StringData: pulumi.StringMap{"accessToken": pulumi.String(pulumiAccessToken)},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func main() {
 					"accessTokenSecret": accessToken.Metadata.Name(),
 					"stack":             "dirien/aiven-openfaas/dev",
 					"projectRepo":       "https://github.com/dirien/pulumi-aiven-openfaas",
-					"branch":            "refs/remotes/origin/initial",
+					"branch":            "refs/remotes/origin/operator",
 					"repoDir":           "01-application",
 					"gitAuth": map[string]interface{}{
 						"accessToken": map[string]interface{}{
@@ -103,7 +103,7 @@ func main() {
 					"destroyOnFinalize": true,
 				},
 			},
-		}, pulumi.DependsOn([]pulumi.Resource{accessToken}))
+		}, pulumi.DependsOn([]pulumi.Resource{accessToken}), pulumi.Providers(provider))
 
 		// Export the DNS name of the instance
 		ctx.Export("kubeconfig", pulumi.ToSecret(kubeconfig))

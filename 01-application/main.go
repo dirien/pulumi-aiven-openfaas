@@ -89,8 +89,9 @@ func main() {
 		}
 
 		_, err = helm.NewChart(ctx, "openfaas", helm.ChartArgs{
-			Chart:     pulumi.String("openfaas/openfaas"),
+			Chart:     pulumi.String("openfaas"),
 			Version:   pulumi.String("8.0.2"),
+			Repo:      pulumi.String("openfaas"),
 			Namespace: pulumi.String("openfaas"),
 			FetchArgs: helm.FetchArgs{
 				Repo: pulumi.String("https://openfaas.github.io/faas-netes/"),
@@ -163,7 +164,8 @@ func main() {
 		}
 
 		_, err = helm.NewChart(ctx, "kafka-connector", helm.ChartArgs{
-			Chart:     pulumi.String("openfaas/kafka-connector"),
+			Chart:     pulumi.String("kafka-connector"),
+			Repo:      pulumi.String("openfaas"),
 			Version:   pulumi.String("0.6.3"),
 			Namespace: pulumi.String("openfaas"),
 			FetchArgs: helm.FetchArgs{
