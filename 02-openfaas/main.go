@@ -1,70 +1,36 @@
 package main
 
 import (
-	"github.com/pulumi/pulumi-aiven/sdk/v4/go/aiven"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"os"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
-
-const projectName = "kafka-test"
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
+		conf := config.New(ctx, "")
 
-		kafka, err := aiven.NewKafka(ctx, "kafka", &aiven.KafkaArgs{
-			Project:     pulumi.String(projectName),
-			CloudName:   pulumi.String("azure-westeurope"),
-			Plan:        pulumi.String("startup-2"),
-			ServiceName: pulumi.String("openfaas-kafka"),
-			KafkaUserConfig: &aiven.KafkaKafkaUserConfigArgs{
-				KafkaRest:    pulumi.String("true"),
-				KafkaVersion: pulumi.String("2.7"),
-			},
-		})
+		infra, err := pulumi.NewStackReference(ctx, "dirien/00-infrastructure/dev", nil)
 		if err != nil {
 			return err
 		}
-		openfaasTopic, err := aiven.NewKafkaTopic(ctx, "openfaas", &aiven.KafkaTopicArgs{
-			Project:     pulumi.String(projectName),
-			ServiceName: kafka.ServiceName,
-			Partitions:  pulumi.Int(4),
-			Replication: pulumi.Int(2),
-			TopicName:   pulumi.String("openfaas-pro"),
-		})
-
+		aiven, err := pulumi.NewStackReference(ctx, "dirien/01-aiven/dev", nil)
 		if err != nil {
 			return err
 		}
+		caCert := aiven.GetStringOutput(pulumi.String("caCert"))
+		serviceUri := aiven.GetStringOutput(pulumi.String("serviceUri"))
+		topicName := aiven.GetStringOutput(pulumi.String("topicName"))
+		accessCert := aiven.GetStringOutput(pulumi.String("accessCert"))
+		accessKey := aiven.GetStringOutput(pulumi.String("accessKey"))
 
-		user, err := aiven.NewServiceUser(ctx, "openfaas-reader", &aiven.ServiceUserArgs{
-			Project:     pulumi.String(projectName),
-			ServiceName: kafka.ServiceName,
-			Username:    pulumi.String("openfaas-reader"),
-		})
-		if err != nil {
-			return err
-		}
+		kubeconfig := infra.GetStringOutput(pulumi.String("kubeconfig"))
 
-		_, err = aiven.NewKafkaAcl(ctx, "openfaas-acl", &aiven.KafkaAclArgs{
-			Project:     pulumi.String(projectName),
-			ServiceName: kafka.ServiceName,
-			Username:    user.Username,
-			Topic:       openfaasTopic.TopicName,
-			Permission:  pulumi.String("read"),
-		})
-		if err != nil {
-			return err
-		}
-
-		ctx.Export("name", kafka.ServiceName)
-		ctx.Export("AccessKey", pulumi.ToSecret(user.AccessKey))
-		ctx.Export("AccessCert", pulumi.ToSecret(user.AccessCert))
-
-		project, err := aiven.LookupProject(ctx, &aiven.LookupProjectArgs{
-			Project: projectName,
+		provider, err := kubernetes.NewProvider(ctx, "linode-lke", &kubernetes.ProviderArgs{
+			Kubeconfig: kubeconfig,
 		}, nil)
 		if err != nil {
 			return err
@@ -74,7 +40,7 @@ func main() {
 			Metadata: &metav1.ObjectMetaArgs{
 				Name: pulumi.StringPtr("openfaas"),
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
@@ -83,13 +49,14 @@ func main() {
 			Metadata: &metav1.ObjectMetaArgs{
 				Name: pulumi.StringPtr("openfaas-fn"),
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
 
 		_, err = helm.NewChart(ctx, "openfaas", helm.ChartArgs{
-			Chart:     pulumi.String("openfaas/openfaas"),
+			Chart:     pulumi.String("openfaas"),
+			Repo:      pulumi.String("openfaas"),
 			Version:   pulumi.String("8.0.2"),
 			Namespace: pulumi.String("openfaas"),
 			FetchArgs: helm.FetchArgs{
@@ -101,7 +68,7 @@ func main() {
 				"openfaasPRO":       pulumi.Bool(true),
 				"serviceType":       pulumi.String("LoadBalancer"),
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
@@ -113,9 +80,9 @@ func main() {
 				Namespace: namespace.Metadata.Name(),
 			},
 			StringData: pulumi.StringMap{
-				"broker-ca": pulumi.String(project.CaCert),
+				"broker-ca": caCert,
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
@@ -127,9 +94,9 @@ func main() {
 				Namespace: namespace.Metadata.Name(),
 			},
 			StringData: pulumi.StringMap{
-				"broker-cert": user.AccessCert,
+				"broker-cert": accessCert,
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
@@ -141,13 +108,14 @@ func main() {
 				Namespace: namespace.Metadata.Name(),
 			},
 			StringData: pulumi.StringMap{
-				"broker-key": user.AccessKey,
+				"broker-key": accessKey,
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
 
+		openfaas := conf.Require("openfaas")
 		_, err = v1.NewSecret(ctx, "openfaas-license", &v1.SecretArgs{
 			Type: pulumi.String("generic"),
 			Metadata: &metav1.ObjectMetaArgs{
@@ -155,15 +123,16 @@ func main() {
 				Namespace: namespace.Metadata.Name(),
 			},
 			StringData: pulumi.StringMap{
-				"license": pulumi.String(os.Getenv("OPENFAAS_LICENSE")),
+				"license": pulumi.String(openfaas),
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
 
 		_, err = helm.NewChart(ctx, "kafka-connector", helm.ChartArgs{
-			Chart:     pulumi.String("openfaas/kafka-connector"),
+			Chart:     pulumi.String("kafka-connector"),
+			Repo:      pulumi.String("openfaas"),
 			Version:   pulumi.String("0.6.3"),
 			Namespace: pulumi.String("openfaas"),
 			FetchArgs: helm.FetchArgs{
@@ -172,15 +141,15 @@ func main() {
 			},
 
 			Values: pulumi.Map{
-				"brokerHost": kafka.ServiceUri,
+				"brokerHost": serviceUri,
 				"tls":        pulumi.Bool(true),
 				"saslAuth":   pulumi.Bool(false),
 				"caSecret":   kafkaBrokerCa.Metadata.Name(),
 				"certSecret": kafkaBrokerCert.Metadata.Name(),
 				"keySecret":  kafkaBrokerKey.Metadata.Name(),
-				"topics":     openfaasTopic.TopicName,
+				"topics":     topicName,
 			},
-		})
+		}, pulumi.Providers(provider))
 		if err != nil {
 			return err
 		}
