@@ -1,3 +1,3 @@
-name: 02-openfaas
+name: 02-openfaas-aa
 runtime: go
 description: A minimal Kubernetes Go Pulumi program

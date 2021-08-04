@@ -1,3 +1,3 @@
-name: 00-infrastructure
+name: 00-infrastructure--aa
 runtime: go
 description: A minimal Linode Go Pulumi program
