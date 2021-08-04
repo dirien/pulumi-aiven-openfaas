@@ -7,16 +7,33 @@ So this got me hooked. My personal challenge was: **How can I fully automate the
 
 To spice up the challenge, I decided to use only Pulumi for this in Go.
 
+## Preparation
+
+Set the API keys for Linode and Aiven and th OpenFaas Pro license via the
+
+```bash
+cd 00-infrastructure
+pulumi config set linode:token xxx --secret
+
+cd 01-aiven
+pulumi config set aiven:apiToken xxx --secret
+
+02-openfaas
+pulumi config set openfaas xxx --secret
+```
+
+Otherwise, you can't replay the deployment.
+
 ## How to
 
-Firs i cut the whole stack into three different Pulumi `Stacks`:
+Firs I cut the whole stack into three different Pulumi `Stacks`:
 
 - 00-infrastructure
 - 01-aiven
 - 02-openfaas
 
 Creating this kind of independent IaC modules, I would consider as good practice. So at the end you can work independent
-on a specific stack, without running huge all-in-one single deployments.
+on a specific stack, without running having this all-in-one single deployment files.
 
 The only dependency we have between the different stacks are the:
 
@@ -38,3 +55,13 @@ caCert := aiven.GetStringOutput(pulumi.String("caCert"))
 
 Now you can `pulumi up` every folder and your whole stack gets deployed.
 
+So running a deployment of a larger app with different layers (infra, managed services and app) is becoming more and
+more accessible and enables us to work more in a DevOps fashion inside our team.
+
+## Alternative solutions
+
+An alternative solution would be, to use Pulumi for the provisioning of the infrastructure and manged services and
+bootstrapping a GitOps engine (like Flux2 or ArgoCD).
+
+Another solution could be to just provision your kubernetes infrastructure and use [Crossplane](https://crossplane.io/)
+to provision the "real" infrastructure.
