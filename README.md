@@ -1,4 +1,4 @@
-# Running OpenFaas Pro on Linode K8s (feat. Aiven and Pulumi)
+# Running OpenFaas Pro on Linode K8s (feat. Aiven and Pulumi) - Automation- API
 
 Alex Ellis did a great job, when he wrote a tutorial
 about [Event-driven OpenFaaS with Managed Kafka from Aiven](https://www.openfaas.com/blog/openfaas-kafka-aiven/).
@@ -12,14 +12,9 @@ To spice up the challenge, I decided to use only Pulumi for this in Go.
 Set the API keys for Linode and Aiven and th OpenFaas Pro license via the
 
 ```bash
-cd 00-infrastructure
-pulumi config set linode:token xxx --secret
-
-cd 01-aiven
-pulumi config set aiven:apiToken xxx --secret
-
-02-openfaas
-pulumi config set openfaas xxx --secret
+export LINODE_TOKEN=xx
+export AIVEN_TOKEN=zzz
+export LICENSE=yyy
 ```
 
 Otherwise, you can't replay the deployment.
@@ -53,15 +48,15 @@ if err != ...
 caCert := aiven.GetStringOutput(pulumi.String("caCert"))
 ```
 
-Now you can `pulumi up` every folder and your whole stack gets deployed.
+To start via the automation api simply:
 
-So running a deployment of a larger app with different layers (infra, managed services and app) is becoming more and
-more accessible and enables us to work more in a DevOps fashion inside our team.
+```bash
+cd pulumi-automation-api
+go run . 
+```
 
-## Alternative solutions
+to destroy the stacks: 
 
-An alternative solution would be, to use Pulumi for the provisioning of the infrastructure and manged services and
-bootstrapping a GitOps engine (like Flux2 or ArgoCD).
-
-Another solution could be to just provision your kubernetes infrastructure and use [Crossplane](https://crossplane.io/)
-to provision the "real" infrastructure.
+```bash
+go run . destroy
+```
